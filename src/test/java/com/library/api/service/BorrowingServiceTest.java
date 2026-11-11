@@ -12,6 +12,7 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
+import java.math.BigDecimal;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -52,5 +53,33 @@ class BorrowingServiceTest {
         assertThrows(IllegalStateException.class,
                 () -> borrowingService.borrowBook(book.getId(), member.getId()));
         assertEquals(previousCount, borrowingRepository.count());
+    }
+
+    @Test
+    void returnBook_restoresAvailabilityAndRecordsReturnDate() {
+        Borrowing loan = borrowingService.borrowBook(bookRepository.findAll().get(0).getId(),
+                memberRepository.findAll().get(0).getId());
+
+        Borrowing result = borrowingService.returnBook(loan.getId());
+
+        assertEquals(LocalDate.now(), result.getReturnDate());
+        assertTrue(bookRepository.findById(result.getBook().getId()).orElseThrow().isAvailable());
+        assertEquals(new BigDecimal("0.00"), result.getFineAmount());
+    }
+
+    @Test
+    void returnBook_chargesFiftyCentsForEachOverdueDay() {
+        Book book = bookRepository.findAll().get(0);
+        Member member = memberRepository.findAll().get(0);
+        LocalDate today = LocalDate.now();
+        book.setAvailable(false);
+        Borrowing loan = borrowingRepository.saveAndFlush(new Borrowing(null, book, member,
+                today.minusDays(17), today.minusDays(3), null, new BigDecimal("0.00")));
+
+        Borrowing result = borrowingService.returnBook(loan.getId());
+
+        assertEquals(new BigDecimal("1.50"), result.getFineAmount());
+        assertEquals(today, result.getReturnDate());
+        assertTrue(result.getBook().isAvailable());
     }
 }

@@ -56,7 +56,7 @@ public class BorrowingController {
             @ApiResponse(responseCode = "400", ref = "#/components/responses/BadRequest"),
             @ApiResponse(responseCode = "404", ref = "#/components/responses/NotFound")})
     public List<BorrowingDTO> activeBorrowings(@PathVariable Long id) {
-        return borrowingService.getActiveBorrowings(id).stream().map(borrowingMapper::toDTO).toList();
+        return borrowingMapper.toDTOs(borrowingService.getActiveBorrowings(id));
     }
 
     public record BorrowRequest(

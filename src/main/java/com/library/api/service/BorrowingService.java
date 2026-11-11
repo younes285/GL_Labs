@@ -18,7 +18,8 @@ import java.util.List;
 @Service
 public class BorrowingService {
     private static final BigDecimal DAILY_FINE_RATE = new BigDecimal("0.50");
-    private static final int LOAN_DAYS = 14;
+    private static final BigDecimal ZERO_FINE = new BigDecimal("0.00");
+    private static final int DEFAULT_LOAN_DAYS = 14;
     private final BookRepository bookRepository;
     private final MemberRepository memberRepository;
     private final BorrowingRepository borrowingRepository;
@@ -32,23 +33,20 @@ public class BorrowingService {
 
     @Transactional
     public Borrowing borrowBook(Long bookId, Long memberId) {
-        Book book = bookRepository.findById(bookId)
-                .orElseThrow(() -> new EntityNotFoundException("Book not found"));
-        Member member = memberRepository.findById(memberId)
-                .orElseThrow(() -> new EntityNotFoundException("Member not found"));
+        Book book = findBook(bookId);
+        Member member = findMember(memberId);
         if (!book.isAvailable()) {
             throw new IllegalStateException("Book is already borrowed");
         }
         LocalDate today = LocalDate.now();
         book.setAvailable(false);
         return borrowingRepository.save(new Borrowing(null, book, member, today,
-                today.plusDays(LOAN_DAYS), null, new BigDecimal("0.00")));
+                today.plusDays(DEFAULT_LOAN_DAYS), null, ZERO_FINE));
     }
 
     @Transactional
     public Borrowing returnBook(Long borrowingId) {
-        Borrowing borrowing = borrowingRepository.findById(borrowingId)
-                .orElseThrow(() -> new EntityNotFoundException("Borrowing not found"));
+        Borrowing borrowing = findBorrowing(borrowingId);
         if (borrowing.getReturnDate() != null) {
             throw new IllegalStateException("Borrowing has already been returned");
         }
@@ -70,5 +68,20 @@ public class BorrowingService {
     public BigDecimal calculateFine(LocalDate dueDate, LocalDate returnDate) {
         long overdueDays = Math.max(0, ChronoUnit.DAYS.between(dueDate, returnDate));
         return DAILY_FINE_RATE.multiply(BigDecimal.valueOf(overdueDays));
+    }
+
+    private Book findBook(Long bookId) {
+        return bookRepository.findById(bookId)
+                .orElseThrow(() -> new EntityNotFoundException("Book not found"));
+    }
+
+    private Member findMember(Long memberId) {
+        return memberRepository.findById(memberId)
+                .orElseThrow(() -> new EntityNotFoundException("Member not found"));
+    }
+
+    private Borrowing findBorrowing(Long borrowingId) {
+        return borrowingRepository.findById(borrowingId)
+                .orElseThrow(() -> new EntityNotFoundException("Borrowing not found"));
     }
 }

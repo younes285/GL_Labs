@@ -46,7 +46,7 @@ public class ReservationController {
             @ApiResponse(responseCode = "400", ref = "#/components/responses/BadRequest"),
             @ApiResponse(responseCode = "404", ref = "#/components/responses/NotFound")})
     public List<ReservationDTO> activeReservations(@PathVariable Long id) {
-        return reservationService.getActiveReservations(id).stream().map(reservationMapper::toDTO).toList();
+        return reservationMapper.toDTOs(reservationService.getActiveReservations(id));
     }
 
     @DeleteMapping("/reservations/{id}")

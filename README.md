@@ -1,6 +1,6 @@
 # Library API — Software Engineering Labs 2026–2027
 
-Java 17 / Spring Boot 3 Maven REST API for a university library, through Lab 2.
+Java 17 / Spring Boot 3 Maven REST API for a university library, through Lab 3.
 Later labs will extend the same project, one at a time.
 
 ## Run on this Windows machine
@@ -83,6 +83,9 @@ Invoke-RestMethod http://localhost:8082/books -Method Post -ContentType 'applica
 | POST | `/borrowings` | 201, borrowing with a 14-day due date |
 | PUT | `/borrowings/{id}/return` | 200, returned borrowing and calculated fine |
 | GET | `/members/{id}/borrowings` | 200, only that member's active borrowings |
+| POST | `/reservations` | 201, an ACTIVE reservation for an unavailable book |
+| GET | `/members/{id}/reservations` | 200, that member's ACTIVE reservations ordered by ID |
+| DELETE | `/reservations/{id}` | 200, retained CANCELLED reservation; repeatable |
 
 Missing records return 404; invalid request fields return 400. IDs are generated
 by the database, and create operations ignore IDs supplied by clients.
@@ -92,6 +95,17 @@ Returning it requires no body. Borrowing an unavailable book or returning a loan
 twice returns 409 with a problem-detail response. The overdue fine is EUR 0.50
 per day; early and on-time returns cost 0.00. Borrowing and return operations
 update the loan and book in a single transaction.
+
+Reserve an unavailable book with `POST /reservations` and JSON
+`{"bookId":1,"memberId":2}`. The member must be active. Available books,
+inactive members and duplicate ACTIVE pairs return 409. Cancellation preserves
+history and does not change book availability. Cancelling again returns 200;
+the member may reserve that book again while it remains unavailable. This lab
+does not allocate returned books, expire reservations or enforce a queue.
+
+The [reservation specification](docs/AGENTS.md) defines exact messages, lookup
+precedence and AC-1 through AC-6. As with the existing development API, caller
+authentication and multi-user concurrency guarantees are outside this increment.
 
 ## Understand the project (Lab 1, Step D)
 
@@ -119,6 +133,11 @@ handler scoped to the borrowing controller translates missing records and
 conflicting operations to HTTP 404 and 409. Simultaneous borrowing requests are
 not serialized by a locking policy in this simulated sprint; see the code review.
 
+Lab 3 adds Reservation, ReservationStatus, its repository/service, and a separate
+controller and scoped exception handler. The existing entities and controllers
+remain unchanged. Reservation status is stored as a string; its relationships
+to Book and Member are unidirectional.
+
 `application.properties` configures H2 and schema creation. The
 `spring.jpa.defer-datasource-initialization=true` setting ensures tables exist
 before `data.sql` inserts the sample records. Explicit plural table names keep
@@ -142,6 +161,8 @@ and OpenAPI generation. Each test runs in a rolled-back transaction.
 - [Lab 2 report](reports/lab2-report.md) — TDD evidence, velocity and review.
 - [Sprint backlog](docs/sprint-backlog.md) — estimates, actuals and completed stories.
 - [XP code review](docs/lab2-code-review.md) — concerns and applied improvements.
-- Git tags: `lab-1` and `lab-2`; each identifies its lab's completed state.
+- [Lab 3 report](reports/lab3-report.md) — rule audit, requirement classifications and acceptance evidence.
+- [Lab 3 specification](docs/AGENTS.md) and [plan confirmation](docs/lab3-plan.md).
+- Git tags: `lab-1`, `lab-2` and `lab-3`; each identifies its lab's completed state.
 
 The reports' personal reflections need the student's review before submission.

@@ -13,6 +13,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
 import java.math.BigDecimal;
+import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -81,5 +82,23 @@ class BorrowingServiceTest {
         assertEquals(new BigDecimal("1.50"), result.getFineAmount());
         assertEquals(today, result.getReturnDate());
         assertTrue(result.getBook().isAvailable());
+    }
+
+    @Test
+    void activeBorrowings_excludesReturnedLoansAndOtherMembers() {
+        List<Book> books = bookRepository.findAll();
+        List<Member> members = memberRepository.findAll();
+        Long memberId = members.get(0).getId();
+        Borrowing active = borrowingService.borrowBook(books.get(0).getId(), memberId);
+        Borrowing returned = borrowingService.borrowBook(books.get(1).getId(), memberId);
+        borrowingService.returnBook(returned.getId());
+        borrowingService.borrowBook(books.get(2).getId(), members.get(1).getId());
+
+        List<Borrowing> result = borrowingService.getActiveBorrowings(memberId);
+
+        assertEquals(1, result.size());
+        assertEquals(active.getId(), result.get(0).getId());
+        assertNull(result.get(0).getReturnDate());
+        assertTrue(borrowingService.getActiveBorrowings(members.get(2).getId()).isEmpty());
     }
 }

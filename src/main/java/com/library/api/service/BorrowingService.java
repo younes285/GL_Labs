@@ -17,6 +17,7 @@ import java.util.List;
 
 @Service
 public class BorrowingService {
+    private static final BigDecimal DAILY_FINE_RATE = new BigDecimal("0.50");
     private final BookRepository bookRepository;
     private final MemberRepository memberRepository;
     private final BorrowingRepository borrowingRepository;
@@ -50,8 +51,7 @@ public class BorrowingService {
         LocalDate today = LocalDate.now();
         borrowing.setReturnDate(today);
         borrowing.getBook().setAvailable(true);
-        long overdueDays = Math.max(0, ChronoUnit.DAYS.between(borrowing.getDueDate(), today));
-        borrowing.setFineAmount(new BigDecimal("0.50").multiply(BigDecimal.valueOf(overdueDays)));
+        borrowing.setFineAmount(calculateFine(borrowing.getDueDate(), today));
         return borrowingRepository.save(borrowing);
     }
 
@@ -61,5 +61,10 @@ public class BorrowingService {
             throw new EntityNotFoundException("Member not found");
         }
         return borrowingRepository.findByMemberIdAndReturnDateIsNullOrderByIdAsc(memberId);
+    }
+
+    public BigDecimal calculateFine(LocalDate dueDate, LocalDate returnDate) {
+        long overdueDays = Math.max(0, ChronoUnit.DAYS.between(dueDate, returnDate));
+        return DAILY_FINE_RATE.multiply(BigDecimal.valueOf(overdueDays));
     }
 }

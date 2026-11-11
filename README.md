@@ -1,6 +1,6 @@
 # Library API — Software Engineering Labs 2026–2027
 
-Lab 1: a Java 17 / Spring Boot 3 Maven REST API for a university library.
+Java 17 / Spring Boot 3 Maven REST API for a university library, through Lab 2.
 Later labs will extend the same project, one at a time.
 
 ## Run on this Windows machine
@@ -8,12 +8,12 @@ Later labs will extend the same project, one at a time.
 From the `library-api` directory:
 
 ```powershell
-$env:SERVER_PORT = '8081'
+$env:SERVER_PORT = '8082'
 powershell -ExecutionPolicy Bypass -File .\scripts\maven.ps1 spring-boot:run
 ```
 
-Apache already occupies port 8080 on this machine, so the commands here select
-8081. The application's default port remains 8080 when `SERVER_PORT` is unset.
+Existing services occupy ports 8080 and 8081 on this machine, so the commands
+here select 8082. The default remains 8080 when `SERVER_PORT` is unset.
 
 The script uses project-local Maven and a Java 17 installation selected through
 the ignored `.tools/java-home.txt` file (or a JDK extracted into `.tools`). On this
@@ -44,20 +44,20 @@ powershell -ExecutionPolicy Bypass -File .\scripts\maven.ps1 clean spring-boot:r
 
 | Address | Purpose |
 | --- | --- |
-| http://localhost:8081/books | Five sample books as JSON |
-| http://localhost:8081/members | Three sample members as JSON |
-| http://localhost:8081/swagger-ui.html | Interactive API documentation |
-| http://localhost:8081/v3/api-docs | OpenAPI JSON |
-| http://localhost:8081/h2-console | Development database console |
-| http://localhost:8081/actuator/health | Application health |
+| http://localhost:8082/books | Five sample books as JSON |
+| http://localhost:8082/members | Three sample members as JSON |
+| http://localhost:8082/swagger-ui.html | Interactive API documentation |
+| http://localhost:8082/v3/api-docs | OpenAPI JSON |
+| http://localhost:8082/h2-console | Development database console |
+| http://localhost:8082/actuator/health | Application health |
 
 H2 login: driver `org.h2.Driver`, JDBC URL
 `jdbc:h2:mem:librarydb`, username `sa`, empty password.
 The H2 console and unauthenticated endpoints are for this local development lab.
 
 ```powershell
-Invoke-RestMethod http://localhost:8081/books
-Invoke-RestMethod http://localhost:8081/members
+Invoke-RestMethod http://localhost:8082/books
+Invoke-RestMethod http://localhost:8082/members
 
 $book = @{
     isbn = '9780000000001'
@@ -67,7 +67,7 @@ $book = @{
     publishedYear = 2026
     available = $true
 } | ConvertTo-Json
-Invoke-RestMethod http://localhost:8081/books -Method Post -ContentType 'application/json' -Body $book
+Invoke-RestMethod http://localhost:8082/books -Method Post -ContentType 'application/json' -Body $book
 ```
 
 | Method | Path | Success |
@@ -80,9 +80,18 @@ Invoke-RestMethod http://localhost:8081/books -Method Post -ContentType 'applica
 | GET | `/members` | 200, member list |
 | GET | `/members/{id}` | 200, one member |
 | POST | `/members` | 201, saved member and Location header |
+| POST | `/borrowings` | 201, borrowing with a 14-day due date |
+| PUT | `/borrowings/{id}/return` | 200, returned borrowing and calculated fine |
+| GET | `/members/{id}/borrowings` | 200, only that member's active borrowings |
 
 Missing records return 404; invalid request fields return 400. IDs are generated
 by the database, and create operations ignore IDs supplied by clients.
+
+Borrow a book with `POST /borrowings` and JSON `{"bookId":1,"memberId":1}`.
+Returning it requires no body. Borrowing an unavailable book or returning a loan
+twice returns 409 with a problem-detail response. The overdue fine is EUR 0.50
+per day; early and on-time returns cost 0.00. Borrowing and return operations
+update the loan and book in a single transaction.
 
 ## Understand the project (Lab 1, Step D)
 
@@ -102,10 +111,13 @@ discovers the entities without extra scanning configuration.
   validate incoming JSON, select HTTP status codes, and return objects that Spring
   serializes as JSON. Constructor injection makes their dependencies explicit.
 
-The request flow is **HTTP → controller → repository → H2**, with entities carrying
-the data. Lab 1 uses direct repository calls for its small CRUD scope; Lab 2 will
-introduce a service for borrowing rules and transactions. No borrowing endpoint or
-borrowing business rule is implemented in Lab 1.
+The original Lab 1 CRUD flow is **HTTP → controller → repository → H2**, with
+entities carrying the data. Lab 2 adds **BorrowingController → BorrowingService →
+repositories**, placing borrowing rules and transaction boundaries in the
+service. The service also provides a pure `calculateFine` method. An exception
+handler scoped to the borrowing controller translates missing records and
+conflicting operations to HTTP 404 and 409. Simultaneous borrowing requests are
+not serialized by a locking policy in this simulated sprint; see the code review.
 
 `application.properties` configures H2 and schema creation. The
 `spring.jpa.defer-datasource-initialization=true` setting ensures tables exist
@@ -127,6 +139,9 @@ and OpenAPI generation. Each test runs in a rolled-back transaction.
 
 - [Lab 1 report](reports/lab1-report.md) — evidence and reflection draft to review.
 - [Lab 1 verification](reports/lab1-verification.md) — actual build and HTTP checks.
-- Git tag: `lab-1` on `main`.
+- [Lab 2 report](reports/lab2-report.md) — TDD evidence, velocity and review.
+- [Sprint backlog](docs/sprint-backlog.md) — estimates, actuals and completed stories.
+- [XP code review](docs/lab2-code-review.md) — concerns and applied improvements.
+- Git tags: `lab-1` and `lab-2`; each identifies its lab's completed state.
 
-The report's personal reflections need the student's review before submission.
+The reports' personal reflections need the student's review before submission.

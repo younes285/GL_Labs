@@ -18,6 +18,7 @@ import java.util.List;
 @Service
 public class BorrowingService {
     private static final BigDecimal DAILY_FINE_RATE = new BigDecimal("0.50");
+    private static final int LOAN_DAYS = 14;
     private final BookRepository bookRepository;
     private final MemberRepository memberRepository;
     private final BorrowingRepository borrowingRepository;
@@ -41,13 +42,16 @@ public class BorrowingService {
         LocalDate today = LocalDate.now();
         book.setAvailable(false);
         return borrowingRepository.save(new Borrowing(null, book, member, today,
-                today.plusDays(14), null, new BigDecimal("0.00")));
+                today.plusDays(LOAN_DAYS), null, new BigDecimal("0.00")));
     }
 
     @Transactional
     public Borrowing returnBook(Long borrowingId) {
         Borrowing borrowing = borrowingRepository.findById(borrowingId)
                 .orElseThrow(() -> new EntityNotFoundException("Borrowing not found"));
+        if (borrowing.getReturnDate() != null) {
+            throw new IllegalStateException("Borrowing has already been returned");
+        }
         LocalDate today = LocalDate.now();
         borrowing.setReturnDate(today);
         borrowing.getBook().setAvailable(true);

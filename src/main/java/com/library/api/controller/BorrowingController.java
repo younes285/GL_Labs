@@ -7,6 +7,8 @@ import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Positive;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
@@ -23,6 +25,11 @@ public class BorrowingController {
     @ResponseStatus(HttpStatus.CREATED)
     public Borrowing borrow(@Valid @RequestBody BorrowRequest request) {
         return borrowingService.borrowBook(request.bookId(), request.memberId());
+    }
+
+    @PutMapping("/borrowings/{id}/return")
+    public Borrowing returnBook(@PathVariable Long id) {
+        return borrowingService.returnBook(id);
     }
 
     public record BorrowRequest(@NotNull @Positive Long bookId, @NotNull @Positive Long memberId) {

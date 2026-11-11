@@ -35,6 +35,7 @@ public class Book {
     private boolean available = true;
 
     public Book() {
+        // Required by JPA for reflective entity construction.
     }
 
     public Book(Long id, String isbn, String title, String author, String genre,

@@ -41,6 +41,7 @@ public class Reservation {
     private ReservationStatus status;
 
     public Reservation() {
+        // Required by JPA for reflective entity construction.
     }
 
     public Reservation(Long id, Book book, Member member, LocalDate reservationDate, ReservationStatus status) {

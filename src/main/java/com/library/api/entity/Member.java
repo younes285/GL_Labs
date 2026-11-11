@@ -31,6 +31,7 @@ public class Member {
     private boolean active = true;
 
     public Member() {
+        // Required by JPA for reflective entity construction.
     }
 
     public Member(Long id, String name, String email, LocalDate membershipDate, boolean active) {

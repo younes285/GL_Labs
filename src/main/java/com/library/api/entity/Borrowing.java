@@ -45,6 +45,7 @@ public class Borrowing {
     private BigDecimal fineAmount = new BigDecimal("0.00");
 
     public Borrowing() {
+        // Required by JPA for reflective entity construction.
     }
 
     public Borrowing(Long id, Book book, Member member, LocalDate borrowDate,

@@ -13,6 +13,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.temporal.ChronoUnit;
+import java.util.List;
 
 @Service
 public class BorrowingService {
@@ -52,5 +53,13 @@ public class BorrowingService {
         long overdueDays = Math.max(0, ChronoUnit.DAYS.between(borrowing.getDueDate(), today));
         borrowing.setFineAmount(new BigDecimal("0.50").multiply(BigDecimal.valueOf(overdueDays)));
         return borrowingRepository.save(borrowing);
+    }
+
+    @Transactional(readOnly = true)
+    public List<Borrowing> getActiveBorrowings(Long memberId) {
+        if (!memberRepository.existsById(memberId)) {
+            throw new EntityNotFoundException("Member not found");
+        }
+        return borrowingRepository.findByMemberIdAndReturnDateIsNullOrderByIdAsc(memberId);
     }
 }

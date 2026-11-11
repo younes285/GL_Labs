@@ -41,7 +41,7 @@ class ReservationControllerTest {
         mvc.perform(post("/reservations").contentType(MediaType.APPLICATION_JSON)
                         .content("{\"bookId\":1,\"memberId\":1}"))
                 .andExpect(status().isConflict())
-                .andExpect(jsonPath("$.detail").value("Book is available for direct borrowing."));
+                .andExpect(jsonPath("$.error").value("Book is available for direct borrowing."));
         assertEquals(0, reservations.count());
     }
 
@@ -52,12 +52,12 @@ class ReservationControllerTest {
         assertTrue(saved.get("id").asLong() > 0);
         assertEquals("ACTIVE", saved.get("status").asText());
         assertEquals(LocalDate.now().toString(), saved.get("reservationDate").asText());
-        assertEquals(1, saved.get("book").get("id").asLong());
-        assertEquals(1, saved.get("member").get("id").asLong());
+        assertEquals(1, saved.get("bookId").asLong());
+        assertEquals(1, saved.get("memberId").asLong());
         mvc.perform(post("/reservations").contentType(MediaType.APPLICATION_JSON)
                         .content("{\"bookId\":1,\"memberId\":1}"))
                 .andExpect(status().isConflict())
-                .andExpect(jsonPath("$.detail").value("An active reservation already exists."));
+                .andExpect(jsonPath("$.error").value("An active reservation already exists."));
         reserve(1, 2);
         assertEquals(2, reservations.count());
         assertFalse(books.findById(1L).orElseThrow().isAvailable());
@@ -100,14 +100,14 @@ class ReservationControllerTest {
     void ac5_missingResourcesReturn404WithSpecifiedPrecedence() throws Exception {
         mvc.perform(post("/reservations").contentType(MediaType.APPLICATION_JSON)
                         .content("{\"bookId\":999999,\"memberId\":999999}"))
-                .andExpect(status().isNotFound()).andExpect(jsonPath("$.detail").value("Book not found"));
+                .andExpect(status().isNotFound()).andExpect(jsonPath("$.error").value("Book not found"));
         mvc.perform(post("/reservations").contentType(MediaType.APPLICATION_JSON)
                         .content("{\"bookId\":1,\"memberId\":999999}"))
-                .andExpect(status().isNotFound()).andExpect(jsonPath("$.detail").value("Member not found"));
+                .andExpect(status().isNotFound()).andExpect(jsonPath("$.error").value("Member not found"));
         mvc.perform(get("/members/999999/reservations"))
-                .andExpect(status().isNotFound()).andExpect(jsonPath("$.detail").value("Member not found"));
+                .andExpect(status().isNotFound()).andExpect(jsonPath("$.error").value("Member not found"));
         mvc.perform(delete("/reservations/999999"))
-                .andExpect(status().isNotFound()).andExpect(jsonPath("$.detail").value("Reservation not found"));
+                .andExpect(status().isNotFound()).andExpect(jsonPath("$.error").value("Reservation not found"));
         assertEquals(0, reservations.count());
     }
 
@@ -120,7 +120,7 @@ class ReservationControllerTest {
 
         mvc.perform(post("/reservations").contentType(MediaType.APPLICATION_JSON)
                         .content("{\"bookId\":1,\"memberId\":1}"))
-                .andExpect(status().isConflict()).andExpect(jsonPath("$.detail").value("Member is inactive."));
+                .andExpect(status().isConflict()).andExpect(jsonPath("$.error").value("Member is inactive."));
         assertEquals(0, reservations.count());
     }
 

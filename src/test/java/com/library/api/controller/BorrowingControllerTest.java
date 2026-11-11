@@ -53,7 +53,7 @@ class BorrowingControllerTest {
         mvc.perform(post("/borrowings").contentType(MediaType.APPLICATION_JSON)
                         .content("{\"bookId\":1,\"memberId\":2}"))
                 .andExpect(status().isConflict())
-                .andExpect(jsonPath("$.detail").value("Book is already borrowed"));
+                .andExpect(jsonPath("$.error").value("Book is already borrowed"));
         assertEquals(1, borrowingRepository.count());
         mvc.perform(get("/books/1")).andExpect(jsonPath("$.available").value(false));
     }
@@ -66,7 +66,7 @@ class BorrowingControllerTest {
 
         mvc.perform(put("/borrowings/{id}/return", oldId))
                 .andExpect(status().isConflict())
-                .andExpect(jsonPath("$.detail").value("Borrowing has already been returned"));
+                .andExpect(jsonPath("$.error").value("Borrowing has already been returned"));
         mvc.perform(get("/books/1")).andExpect(jsonPath("$.available").value(false));
         mvc.perform(get("/members/2/borrowings"))
                 .andExpect(status().isOk())
@@ -78,10 +78,10 @@ class BorrowingControllerTest {
     void missingResourcesReturn404WithoutChangingBookAvailability() throws Exception {
         mvc.perform(post("/borrowings").contentType(MediaType.APPLICATION_JSON)
                         .content("{\"bookId\":999999,\"memberId\":1}"))
-                .andExpect(status().isNotFound()).andExpect(jsonPath("$.detail").value("Book not found"));
+                .andExpect(status().isNotFound()).andExpect(jsonPath("$.error").value("Book not found"));
         mvc.perform(post("/borrowings").contentType(MediaType.APPLICATION_JSON)
                         .content("{\"bookId\":1,\"memberId\":999999}"))
-                .andExpect(status().isNotFound()).andExpect(jsonPath("$.detail").value("Member not found"));
+                .andExpect(status().isNotFound()).andExpect(jsonPath("$.error").value("Member not found"));
         mvc.perform(put("/borrowings/999999/return")).andExpect(status().isNotFound());
         mvc.perform(get("/members/999999/borrowings")).andExpect(status().isNotFound());
         mvc.perform(get("/books/1")).andExpect(jsonPath("$.available").value(true));

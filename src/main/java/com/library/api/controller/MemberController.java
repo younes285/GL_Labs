@@ -1,45 +1,54 @@
 package com.library.api.controller;
 
-import com.library.api.entity.Member;
-import com.library.api.repository.MemberRepository;
+import com.library.api.dto.MemberDTO;
+import com.library.api.mapper.MemberMapper;
+import com.library.api.service.MemberService;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.responses.ApiResponses;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
-import org.springframework.web.server.ResponseStatusException;
-
-import java.net.URI;
+import org.springframework.web.bind.annotation.*;
+import org.springframework.http.MediaType;
 import java.util.List;
+import org.springframework.http.ResponseEntity;
+import java.net.URI;
 
 @RestController
-@RequestMapping("/members")
+@RequestMapping(value = "/members", produces = MediaType.APPLICATION_JSON_VALUE)
+@Tag(name = "Members", description = "Register and view library members")
+@ApiResponse(responseCode = "500", ref = "#/components/responses/InternalError")
 public class MemberController {
-    private final MemberRepository memberRepository;
+    private final MemberService memberService;
+    private final MemberMapper memberMapper;
 
-    public MemberController(MemberRepository memberRepository) {
-        this.memberRepository = memberRepository;
+    public MemberController(MemberService memberService, MemberMapper memberMapper) {
+        this.memberService = memberService;
+        this.memberMapper = memberMapper;
     }
 
     @GetMapping
-    public List<Member> getAll() {
-        return memberRepository.findAll();
+    @Operation(summary = "List all members")
+    @ApiResponses({@ApiResponse(responseCode = "200", description = "List all members - successful response")})
+    public List<MemberDTO> getAll() {
+        return memberService.getAll().stream().map(memberMapper::toDTO).toList();
     }
 
     @GetMapping("/{id}")
-    public Member getById(@PathVariable Long id) {
-        return memberRepository.findById(id)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Member not found"));
+    @Operation(summary = "Get a member by ID")
+    @ApiResponses({@ApiResponse(responseCode = "200", description = "Get a member by ID - successful response"),
+            @ApiResponse(responseCode = "400", ref = "#/components/responses/BadRequest"),
+            @ApiResponse(responseCode = "404", ref = "#/components/responses/NotFound")})
+    public MemberDTO getById(@PathVariable Long id) {
+        return memberMapper.toDTO(memberService.getById(id));
     }
 
     @PostMapping
-    public ResponseEntity<Member> create(@Valid @RequestBody Member member) {
-        member.setId(null);
-        Member saved = memberRepository.save(member);
-        return ResponseEntity.created(URI.create("/members/" + saved.getId())).body(saved);
+    @Operation(summary = "Register a member")
+    @ApiResponses({@ApiResponse(responseCode = "201", description = "Register a member - successful response"),
+            @ApiResponse(responseCode = "400", ref = "#/components/responses/BadRequest")})
+    public ResponseEntity<MemberDTO> create(@Valid @RequestBody MemberDTO member) {
+        MemberDTO saved = memberMapper.toDTO(memberService.create(memberMapper.toEntity(member)));
+        return ResponseEntity.created(URI.create("/members/" + saved.id())).body(saved);
     }
 }
